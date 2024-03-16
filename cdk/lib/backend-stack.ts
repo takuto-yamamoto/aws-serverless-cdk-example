@@ -4,9 +4,10 @@ import {
   Stack,
   StackProps,
   RemovalPolicy,
-  aws_apigateway as apigw,
+  aws_apigateway as apigateway,
   aws_dynamodb as dynamodb,
   aws_lambda as lambda,
+  aws_logs as logs,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -40,15 +41,32 @@ export class ExampleBackendStack extends Stack {
     exampleTable.grantReadData(exampleLambda);
 
     // API Gateway
-    const restApi = new apigw.RestApi(this, 'ExampleAPIGateway', {
-      endpointTypes: [apigw.EndpointType.EDGE],
-      restApiName: `example-${ENV}-apigw`,
+    const restApiAccessLogGroup = new logs.LogGroup(
+      this,
+      'ExampleAPIGatewayAccessLog',
+      {
+        logGroupName: `/aws/apigateway/${ENV}/example/rest-api-access-logs`,
+        retention: 365,
+      }
+    );
+    const restApi = new apigateway.RestApi(this, 'ExampleAPIGateway', {
+      endpointTypes: [apigateway.EndpointType.EDGE],
+      restApiName: `example-${ENV}-apigateway`,
       defaultCorsPreflightOptions: {
-        allowOrigins: apigw.Cors.ALL_ORIGINS,
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization'],
       },
-      deployOptions: { stageName: `${ENV}` },
+      cloudWatchRole: true,
+      deployOptions: {
+        stageName: `${ENV}`,
+        dataTraceEnabled: true,
+        loggingLevel: apigateway.MethodLoggingLevel.INFO,
+        accessLogDestination: new apigateway.LogGroupLogDestination(
+          restApiAccessLogGroup
+        ),
+        accessLogFormat: apigateway.AccessLogFormat.clf(),
+      },
     });
 
     // API Gateway と Lambda の統合
@@ -56,6 +74,6 @@ export class ExampleBackendStack extends Stack {
     apiV1
       .addResource('example')
       .addResource('{itemId}')
-      .addMethod('GET', new apigw.LambdaIntegration(exampleLambda));
+      .addMethod('GET', new apigateway.LambdaIntegration(exampleLambda));
   }
 }
