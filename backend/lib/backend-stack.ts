@@ -32,7 +32,7 @@ export class ExampleBackendStack extends Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(
-        path.join(__dirname, '../../lambda/dist/example')
+        path.join(__dirname, '../lambda/dist/example')
       ),
       environment: {
         TABLE_NAME: exampleTable.tableName,
