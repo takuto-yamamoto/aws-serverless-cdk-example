@@ -5,10 +5,12 @@ import {
   StackProps,
   RemovalPolicy,
   aws_apigateway as apigw,
+  aws_cognito as cognito,
   aws_dynamodb as dynamodb,
   aws_lambda as lambda,
   aws_logs as logs,
 } from 'aws-cdk-lib';
+import { OAuthScope } from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
 
 export class ExampleBackendStack extends Stack {
@@ -16,6 +18,31 @@ export class ExampleBackendStack extends Stack {
     super(scope, id, props);
 
     const ENV = this.node.tryGetContext('CDK_ENV');
+
+    // Cognito
+    const userPool = new cognito.UserPool(this, 'ExampleUserPool', {
+      userPoolName: `example-${ENV}-user-pool`,
+      selfSignUpEnabled: true,
+      signInAliases: { email: true },
+      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+    userPool.addClient('ExampleUserPoolClient', {
+      userPoolClientName: `example-${ENV}-user-pool-client`,
+      authFlows: {
+        adminUserPassword: true,
+        userSrp: true,
+      },
+      oAuth: {
+        flows: { authorizationCodeGrant: true },
+        scopes: [
+          OAuthScope.PHONE,
+          OAuthScope.EMAIL,
+          OAuthScope.OPENID,
+          OAuthScope.PROFILE,
+        ],
+      },
+    });
 
     // DynamoDB
     const exampleTable = new dynamodb.Table(this, 'ExampleTable', {

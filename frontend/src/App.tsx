@@ -1,4 +1,5 @@
 import { useReducer, useState } from 'react';
+import { useAuthenticator } from '@aws-amplify/ui-react';
 import axios from 'axios';
 
 import reactLogo from './assets/react.svg';
@@ -9,6 +10,8 @@ import './App.css';
 function App() {
   const [count, addCount] = useReducer((prev) => prev + 1, 0);
   const [item, setItem] = useState(null);
+
+  const { signOut, user } = useAuthenticator();
 
   const addItem = async () => {
     try {
@@ -32,6 +35,7 @@ function App() {
         </a>
       </div>
       <h1>Vite + React</h1>
+      <p>{`Hello, ${user.username}!`}</p>
       <div className="card">
         <button onClick={addCount}>count is {count}</button>
         <button onClick={addItem}>add item</button>
@@ -39,6 +43,7 @@ function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
+        <button onClick={signOut}>SignOut</button>
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
