@@ -1,3 +1,5 @@
+import * as path from 'path';
+
 import {
   Stack,
   StackProps,
@@ -38,7 +40,9 @@ export class ExampleFrontendStack extends Stack {
     });
     // Application Deployment
     new s3Deploy.BucketDeployment(this, 'ApplicationDeploy', {
-      sources: [s3Deploy.Source.asset('../../frontend/dist')],
+      sources: [
+        s3Deploy.Source.asset(path.join(__dirname, '../../frontend/dist')),
+      ],
       destinationBucket: websiteBucket,
     });
 
