@@ -4,7 +4,7 @@ import {
   Stack,
   StackProps,
   RemovalPolicy,
-  aws_apigateway as apigateway,
+  aws_apigateway as apigw,
   aws_dynamodb as dynamodb,
   aws_lambda as lambda,
   aws_logs as logs,
@@ -28,17 +28,21 @@ export class ExampleBackendStack extends Stack {
     });
 
     // Lambda
-    const exampleLambda = new lambda.Function(this, 'ExampleLambda', {
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, '../lambda/dist/example')
-      ),
-      environment: {
-        TABLE_NAME: exampleTable.tableName,
-      },
-    });
-    exampleTable.grantReadData(exampleLambda);
+    const exampleItemIdLambda = new lambda.Function(
+      this,
+      'ExampleItemIdLambda',
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: 'index.handler',
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, '../lambda/dist/example/_itemId')
+        ),
+        environment: {
+          TABLE_NAME: exampleTable.tableName,
+        },
+      }
+    );
+    exampleTable.grantReadWriteData(exampleItemIdLambda);
 
     // API Gateway
     const restApiAccessLogGroup = new logs.LogGroup(
@@ -49,11 +53,11 @@ export class ExampleBackendStack extends Stack {
         retention: 365,
       }
     );
-    const restApi = new apigateway.RestApi(this, 'ExampleAPIGateway', {
-      endpointTypes: [apigateway.EndpointType.EDGE],
+    const restApi = new apigw.RestApi(this, 'ExampleAPIGateway', {
+      endpointTypes: [apigw.EndpointType.EDGE],
       restApiName: `example-${ENV}-apigateway`,
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowOrigins: apigw.Cors.ALL_ORIGINS,
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization'],
       },
@@ -61,19 +65,25 @@ export class ExampleBackendStack extends Stack {
       deployOptions: {
         stageName: `${ENV}`,
         dataTraceEnabled: true,
-        loggingLevel: apigateway.MethodLoggingLevel.INFO,
-        accessLogDestination: new apigateway.LogGroupLogDestination(
+        loggingLevel: apigw.MethodLoggingLevel.INFO,
+        accessLogDestination: new apigw.LogGroupLogDestination(
           restApiAccessLogGroup
         ),
-        accessLogFormat: apigateway.AccessLogFormat.clf(),
+        accessLogFormat: apigw.AccessLogFormat.clf(),
       },
     });
 
     // API Gateway と Lambda の統合
+    // root
     const apiV1 = restApi.root.addResource('api').addResource('v1');
-    apiV1
-      .addResource('example')
-      .addResource('{itemId}')
-      .addMethod('GET', new apigateway.LambdaIntegration(exampleLambda));
+    // /example
+    const exampleResource = apiV1.addResource('example');
+    // /example/{itemId}
+    const exampleItemIdResource = exampleResource.addResource('{itemId}');
+    const exampleItemIdIntegration = new apigw.LambdaIntegration(
+      exampleItemIdLambda
+    );
+    exampleItemIdResource.addMethod('GET', exampleItemIdIntegration);
+    exampleItemIdResource.addMethod('PUT', exampleItemIdIntegration);
   }
 }

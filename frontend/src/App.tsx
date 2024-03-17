@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
+import axios from 'axios';
 
 import reactLogo from './assets/react.svg';
 
@@ -6,7 +7,19 @@ import viteLogo from '/vite.svg';
 import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [count, addCount] = useReducer((prev) => prev + 1, 0);
+  const [item, setItem] = useState(null);
+
+  const addItem = async () => {
+    try {
+      const endpoint = `https://ifs3z4r93j.execute-api.ap-northeast-1.amazonaws.com/dev/api/v1/example/${count}`;
+      const response = await axios.put(endpoint);
+      setItem(response.data.description);
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };
 
   return (
     <>
@@ -20,9 +33,9 @@ function App() {
       </div>
       <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
+        <button onClick={addCount}>count is {count}</button>
+        <button onClick={addItem}>add item</button>
+        {item && <p>{`${item} を追加しました!`}</p>}
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>

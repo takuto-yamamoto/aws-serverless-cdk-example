@@ -12,9 +12,9 @@ if (!ENV) {
   throw new Error('--contextオプションに CDK_ENV を設定してください');
 }
 
+new ExampleBackendStack(app, `ExampleBackendStack-${ENV}`);
+
 // 個人環境はfrontendリソースを立てない（localhostを利用）
 if (ENV === 'prod' || ENV === 'dev') {
   new ExampleFrontendStack(app, `ExampleFrontendStack-${ENV}`);
 }
-
-new ExampleBackendStack(app, `ExampleBackendStack-${ENV}`);

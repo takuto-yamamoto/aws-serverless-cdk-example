@@ -1,6 +1,19 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+
+const addCorsHeaders = (response: APIGatewayProxyResult) => ({
+  ...response,
+  headers: {
+    ...response.headers,
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+  },
+});
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -10,19 +23,19 @@ export const handler = async (
   const tableName = process.env.TABLE_NAME;
 
   if (!itemId) {
-    return {
+    return addCorsHeaders({
       statusCode: 400,
       body: JSON.stringify(
         'リクエストのパスパラメータにアイテムIDが存在しません'
       ),
-    };
+    });
   }
 
   if (!tableName) {
-    return {
+    return addCorsHeaders({
       statusCode: 500,
       body: JSON.stringify('環境変数にテーブル名が登録されていません'),
-    };
+    });
   }
 
   const ddbClient = new DynamoDBClient({ region: 'ap-northeast-1' });
@@ -37,17 +50,31 @@ export const handler = async (
         })
       );
 
-      return {
+      return addCorsHeaders({
         statusCode: 200,
-        body: JSON.stringify(response),
+        body: JSON.stringify(response.Item),
+      });
+    } else if (httpMethod === 'PUT') {
+      const newItem = {
+        itemId,
+        description: `${itemId}番目のアイテム`,
       };
+      await documentClient.send(
+        new PutCommand({ TableName: tableName, Item: newItem })
+      );
+
+      return addCorsHeaders({
+        statusCode: 200,
+        body: JSON.stringify(newItem),
+      });
     } else {
       throw new Error(`不明なHTTPメソッドです: ${httpMethod}`);
     }
   } catch (error) {
-    return {
+    console.error(error);
+    return addCorsHeaders({
       statusCode: 500,
       body: JSON.stringify(`Internal Server Error: ${error}`),
-    };
+    });
   }
 };
