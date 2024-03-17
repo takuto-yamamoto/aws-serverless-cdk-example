@@ -10,7 +10,6 @@ const addCorsHeaders = (response: APIGatewayProxyResult) => ({
   ...response,
   headers: {
     ...response.headers,
-    'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
   },
 });

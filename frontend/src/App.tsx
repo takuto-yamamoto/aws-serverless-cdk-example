@@ -1,4 +1,5 @@
 import { useReducer, useState } from 'react';
+import { fetchAuthSession } from 'aws-amplify/auth';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import axios from 'axios';
 
@@ -15,8 +16,15 @@ function App() {
 
   const addItem = async () => {
     try {
+      const session = await fetchAuthSession();
+      const jwtToken = session.tokens?.idToken?.toString();
+
       const endpoint = `${import.meta.env.VITE_API_URL}/example/${count}`;
-      const response = await axios.put(endpoint);
+      const response = await axios.put(endpoint, null, {
+        headers: {
+          Authorization: jwtToken,
+        },
+      });
       setItem(response.data.description);
     } catch (error) {
       console.error(error);

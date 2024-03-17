@@ -72,6 +72,16 @@ export class ExampleBackendStack extends Stack {
     exampleTable.grantReadWriteData(exampleItemIdLambda);
 
     // API Gateway
+    // Authorizer
+    const restApiAuthorizer = new apigw.CognitoUserPoolsAuthorizer(
+      this,
+      'RestApiAuthorizer',
+      {
+        cognitoUserPools: [userPool],
+        authorizerName: `example-${ENV}-apigateway-authorizer`,
+      }
+    );
+    // AccessLogGroup
     const restApiAccessLogGroup = new logs.LogGroup(
       this,
       'ExampleAPIGatewayAccessLog',
@@ -80,6 +90,7 @@ export class ExampleBackendStack extends Stack {
         retention: 365,
       }
     );
+    // REST API
     const restApi = new apigw.RestApi(this, 'ExampleAPIGateway', {
       endpointTypes: [apigw.EndpointType.EDGE],
       restApiName: `example-${ENV}-apigateway`,
@@ -88,7 +99,10 @@ export class ExampleBackendStack extends Stack {
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization'],
       },
-      cloudWatchRole: true,
+      defaultMethodOptions: {
+        authorizer: restApiAuthorizer,
+        authorizationType: apigw.AuthorizationType.COGNITO,
+      },
       deployOptions: {
         stageName: `${ENV}`,
         dataTraceEnabled: true,
@@ -98,6 +112,7 @@ export class ExampleBackendStack extends Stack {
         ),
         accessLogFormat: apigw.AccessLogFormat.clf(),
       },
+      cloudWatchRole: true,
     });
 
     // API Gateway と Lambda の統合
