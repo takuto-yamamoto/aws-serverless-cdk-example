@@ -12,7 +12,7 @@ function App() {
 
   const addItem = async () => {
     try {
-      const endpoint = `https://ifs3z4r93j.execute-api.ap-northeast-1.amazonaws.com/dev/api/v1/example/${count}`;
+      const endpoint = `${import.meta.env.VITE_API_URL}/example/${count}`;
       const response = await axios.put(endpoint);
       setItem(response.data.description);
     } catch (error) {
