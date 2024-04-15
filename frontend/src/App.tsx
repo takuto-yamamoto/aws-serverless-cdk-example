@@ -10,7 +10,8 @@ import './App.css';
 
 function App() {
   const [count, addCount] = useReducer((prev) => prev + 1, 0);
-  const [item, setItem] = useState(null);
+  const [item, setItem] = useState();
+  const [json, setJson] = useState();
 
   const { signOut, user } = useAuthenticator();
 
@@ -32,6 +33,17 @@ function App() {
     }
   };
 
+  const getMetadata = async () => {
+    try {
+      const endpoint = `${import.meta.env.VITE_CLOUDFRONT_URL}/example.json`;
+      const response = await axios.get(endpoint);
+      setJson(response.data);
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };
+
   return (
     <>
       <div>
@@ -47,7 +59,9 @@ function App() {
       <div className="card">
         <button onClick={addCount}>count is {count}</button>
         <button onClick={addItem}>add item</button>
+        <button onClick={getMetadata}>get metadata</button>
         {item && <p>{`${item} を追加しました!`}</p>}
+        {json && <p>{JSON.stringify(json)}</p>}
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
