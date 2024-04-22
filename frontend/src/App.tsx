@@ -1,4 +1,4 @@
-import { useReducer, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import axios from 'axios';
@@ -14,6 +14,25 @@ function App() {
   const [json, setJson] = useState();
 
   const { signOut, user } = useAuthenticator();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const session = await fetchAuthSession();
+        const jwtToken = session.tokens?.idToken?.toString();
+
+        const endpoint = `${import.meta.env.VITE_API_URL}/cookie`;
+        await axios.get(endpoint, {
+          headers: {
+            Authorization: jwtToken,
+          },
+        });
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
+    })();
+  }, []);
 
   const addItem = async () => {
     try {
@@ -35,8 +54,16 @@ function App() {
 
   const getMetadata = async () => {
     try {
+      const session = await fetchAuthSession();
+      const jwtToken = session.tokens?.idToken?.toString();
+
       const endpoint = `${import.meta.env.VITE_CLOUDFRONT_URL}/example.json`;
-      const response = await axios.get(endpoint);
+      const response = await axios.get(endpoint, {
+        withCredentials: true,
+        headers: {
+          Authorization: jwtToken,
+        },
+      });
       setJson(response.data);
     } catch (error) {
       console.error(error);
